@@ -49,6 +49,8 @@ export default function Arena({
     const currentTweenRef = useRef();
     const sessionHitTimestamps = useRef([]);
     const sessionStartTime = useRef(0);
+    const currentDangerIconsRef = useRef([]);
+    const currentSafeIconsRef = useRef([]);
 
     // Overlay state
     const [overlayState, setOverlayState] = useState({
@@ -60,6 +62,8 @@ export default function Arena({
         finalXp: 0,
         isNewBest: false
     });
+    
+    const [showDangerModal, setShowDangerModal] = useState(false);
 
     const getDiff = useCallback((time) => {
         const el = 60 - time;
@@ -109,11 +113,13 @@ export default function Arena({
             setTargetClass('special');
             setSpecialActive(true);
         } else if (roll < 0.18) {
-            setTargetIcon(th.danger);
+            const dangerArr = currentDangerIconsRef.current;
+            setTargetIcon(dangerArr[Math.floor(Math.random() * dangerArr.length)]);
             setTargetClass('danger-target');
             setDangerActive(true);
         } else {
-            setTargetIcon(th.items[Math.floor(Math.random() * th.items.length)]);
+            const safeArr = currentSafeIconsRef.current;
+            setTargetIcon(safeArr[Math.floor(Math.random() * safeArr.length)]);
             setTargetClass('');
         }
     }, [theme]);
@@ -121,33 +127,44 @@ export default function Arena({
     const scheduleMove = useCallback(() => {
         if (!gameRunning || paused) return;
         if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
+        const d = getDiff(timeLeft);
+        // The emoji stays visible for d.speed seconds before automatically moving
         moveTimeoutRef.current = setTimeout(() => { 
             if (gameRunning && !paused) moveTarget(); 
-        }, getDiff(timeLeft).pause);
+        }, d.speed * 1000 + 100); 
     }, [gameRunning, paused, timeLeft, getDiff]);
 
     const moveTarget = useCallback(() => {
         if (!gameRunning || paused || !arenaRef.current || !targetRef.current) return;
         
-        const maxX = arenaRef.current.offsetWidth - 60;
-        const maxY = arenaRef.current.offsetHeight - 60;
-        const x = Math.floor(Math.random() * maxX);
-        const y = Math.floor(Math.random() * maxY);
-        const d = getDiff(timeLeft);
-        const spin = Math.random() < 0.35 ? (Math.random() < 0.5 ? 360 : -360) : 0;
-        
         if (currentTweenRef.current) currentTweenRef.current.kill();
+        if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
         
         currentTweenRef.current = gsap.to(targetRef.current, {
-            x, y, duration: d.speed, ease: 'power3.out', rotation: '+=' + spin,
+            scale: 0,
+            duration: 0.15,
+            ease: 'back.in(2)',
             onComplete: () => {
                 if (!gameRunning || paused) return;
-                gsap.to(targetRef.current, { scale: 1.1, duration: 0.08, yoyo: true, repeat: 1 });
-                pickTarget(); 
-                scheduleMove();
+                
+                const maxX = arenaRef.current.offsetWidth - 60;
+                const maxY = arenaRef.current.offsetHeight - 60;
+                const x = Math.floor(Math.random() * maxX);
+                const y = Math.floor(Math.random() * maxY);
+                const spin = Math.random() < 0.35 ? (Math.random() < 0.5 ? 360 : -360) : 0;
+                
+                gsap.set(targetRef.current, { x, y, rotation: '+=' + spin });
+                pickTarget();
+                
+                gsap.to(targetRef.current, {
+                    scale: 1,
+                    duration: 0.25,
+                    ease: 'back.out(2)',
+                    onComplete: () => scheduleMove()
+                });
             }
         });
-    }, [gameRunning, paused, timeLeft, getDiff, pickTarget, scheduleMove]);
+    }, [gameRunning, paused, pickTarget, scheduleMove]);
 
     const showPop = (e, text, cls) => {
         if (!arenaRef.current) return;
@@ -189,9 +206,15 @@ export default function Arena({
             
             if (currentTweenRef.current) currentTweenRef.current.kill();
             if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
-            gsap.set(targetRef.current, { x: -200, y: -200 }); 
+            
+            const maxX = arenaRef.current.offsetWidth - 60;
+            const maxY = arenaRef.current.offsetHeight - 60;
+            const x = Math.floor(Math.random() * maxX);
+            const y = Math.floor(Math.random() * maxY);
+            
+            gsap.set(targetRef.current, { x, y, scale: 0 }); 
             pickTarget();
-            gsap.to(targetRef.current, { scale: 1, duration: 0.2, ease: 'back.out(2)', onComplete: () => moveTarget() });
+            gsap.to(targetRef.current, { scale: 1, duration: 0.2, ease: 'back.out(2)', onComplete: () => scheduleMove() });
             return;
         }
 
@@ -220,9 +243,14 @@ export default function Arena({
             .to(targetRef.current, { scale: 1.5, duration: 0.07, ease: 'power2.out' })
             .to(targetRef.current, { scale: 0, duration: 0.13, ease: 'back.in(2)' })
             .call(() => {
-                gsap.set(targetRef.current, { x: -200, y: -200 }); 
+                const maxX = arenaRef.current.offsetWidth - 60;
+                const maxY = arenaRef.current.offsetHeight - 60;
+                const x = Math.floor(Math.random() * maxX);
+                const y = Math.floor(Math.random() * maxY);
+                
+                gsap.set(targetRef.current, { x, y, scale: 0 }); 
                 pickTarget();
-                gsap.to(targetRef.current, { scale: 1, duration: 0.22, ease: 'back.out(3)', onComplete: () => moveTarget() });
+                gsap.to(targetRef.current, { scale: 1, duration: 0.22, ease: 'back.out(3)', onComplete: () => scheduleMove() });
             });
     };
 
@@ -360,38 +388,52 @@ export default function Arena({
     }, [bestScore, getDiff]); // intentionally avoiding recreating
 
     const startGame = () => {
-        setScore(0); setStreak(0); setMultiplier(1); setLives(3); setHits(0); setMisses(0);
-        setTimeLeft(60); setGameRunning(true); setPaused(false);
-        setSpecialActive(false); setDangerActive(false);
-        sessionStartTime.current = Date.now();
-        sessionHitTimestamps.current = [];
+        const allItems = [...THEMES[theme].items];
+        // Shuffle the array
+        for (let i = allItems.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
+        }
+        
+        currentDangerIconsRef.current = allItems.slice(0, 5);
+        currentSafeIconsRef.current = allItems.slice(5);
         
         setOverlayState(prev => ({ ...prev, show: false }));
+        setShowDangerModal(true);
 
         if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => console.log(err));
         }
 
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
+        setTimeout(() => {
+            setShowDangerModal(false);
+            setScore(0); setStreak(0); setMultiplier(1); setLives(3); setHits(0); setMisses(0);
+            setTimeLeft(60); setGameRunning(true); setPaused(false);
+            setSpecialActive(false); setDangerActive(false);
+            sessionStartTime.current = Date.now();
+            sessionHitTimestamps.current = [];
 
-        const a = arenaRef.current;
-        gsap.set(targetRef.current, { scale: 0, rotation: 0, x: a.offsetWidth / 2 - 28, y: a.offsetHeight / 2 - 28 });
-        pickTarget();
-        gsap.to(targetRef.current, { scale: 1, duration: 0.4, ease: 'back.out(2.5)' });
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
 
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    endGame('time-up');
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
+            const a = arenaRef.current;
+            gsap.set(targetRef.current, { scale: 0, rotation: 0, x: a.offsetWidth / 2 - 28, y: a.offsetHeight / 2 - 28 });
+            pickTarget();
+            gsap.to(targetRef.current, { scale: 1, duration: 0.4, ease: 'back.out(2.5)' });
 
-        scheduleMove();
+            timerRef.current = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timerRef.current);
+                        endGame('time-up');
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            scheduleMove();
+        }, 5000);
     };
 
     const togglePause = () => {
@@ -463,7 +505,7 @@ export default function Arena({
                     {overlayState.isNewBest && overlayState.finalScore > 0 && <div id="ov-best-tag" style={{ display: 'block' }}>🏆 NEW BEST!</div>}
                     <div id="ov-msg">
                         {overlayState.reason === 'init' ? 
-                         "Click the moving icon before it escapes. Miss 3× and it's over. Hit streaks unlock multipliers!" :
+                         "Avoid the danger icon (it changes every game)! Hit streaks unlock multipliers!" :
                          overlayState.reason === 'time-up' ? (overlayState.finalScore > 30 ? 'Outstanding reflexes!' : 'Keep grinding!') : 'You ran out of lives.'}
                     </div>
                     
@@ -488,6 +530,20 @@ export default function Arena({
                         {overlayState.reason === 'init' ? '▶ START GAME' : '↺ PLAY AGAIN'}
                     </button>
                 </div>
+
+                {showDangerModal && (
+                    <div id="danger-modal" style={{
+                        position: 'absolute', inset: 0, zIndex: 40,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(255, 61, 120, 0.95)', backdropFilter: 'blur(8px)', borderRadius: 'var(--r2)'
+                    }}>
+                        <div style={{ fontSize: '72px', marginBottom: '10px', display: 'flex', gap: '15px' }}>
+                            {currentDangerIconsRef.current.map((icon, idx) => <span key={idx}>{icon}</span>)}
+                        </div>
+                        <div style={{ fontFamily: 'var(--font)', fontSize: '28px', fontWeight: 900, color: 'var(--bg0)' }}>AVOID THESE!</div>
+                        <div style={{ fontSize: '14px', color: 'var(--bg0)', marginTop: '8px', fontWeight: '600' }}>They cost a life. Game starts in 5...</div>
+                    </div>
+                )}
             </div>
 
             <div className="arena-bottom">
