@@ -246,14 +246,23 @@
             width: 100%;
             max-width: 1100px;
             display: grid;
-            grid-template-columns: 200px 1fr 220px;
+            grid-template-columns: 200px 1fr 280px;
             gap: 14px;
             align-items: start;
         }
 
+        .main-grid.game-active {
+            grid-template-columns: 1fr;
+        }
+
+        .main-grid.game-active .left-panel,
+        .main-grid.game-active .right-panel {
+            display: none;
+        }
+
         @media(max-width:900px) {
             .main-grid {
-                grid-template-columns: 1fr 220px;
+                grid-template-columns: 1fr 280px;
             }
 
             .left-panel {
@@ -529,13 +538,9 @@
         }
 
         #arena-hud {
-            position: absolute;
-            top: 14px;
-            left: 14px;
-            right: 14px;
             display: flex;
             justify-content: space-between;
-            pointer-events: none;
+            margin-bottom: 8px;
             z-index: 20;
         }
 
@@ -864,8 +869,8 @@
         }
 
         .lb-avatar {
-            width: 28px;
-            height: 28px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             font-size: 13px;
             border: 1px solid var(--b2);
@@ -875,6 +880,12 @@
             justify-content: center;
             overflow: hidden;
             flex-shrink: 0;
+        }
+
+        .lb-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .lb-name {

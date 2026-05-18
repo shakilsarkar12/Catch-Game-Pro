@@ -5,25 +5,6 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 export default function RightPanel({ lives, combo, score, hits, misses, multiplier, diff, streak }) {
-    const { currentUser } = useAuth();
-    const [leaderboard, setLeaderboard] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const q = query(collection(db, 'leaderboard'), orderBy('bestScore', 'desc'), limit(10));
-        const unsubscribe = onSnapshot(q, (snap) => {
-            const entries = [];
-            snap.forEach(d => entries.push(d.data()));
-            setLeaderboard(entries);
-            setLoading(false);
-        }, (error) => {
-            console.error("Leaderboard error: ", error);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, []);
-
     const medals = ['🥇', '🥈', '🥉'];
 
     return (
@@ -65,29 +46,6 @@ export default function RightPanel({ lives, combo, score, hits, misses, multipli
             <div className="how-item"><div className="how-num">4</div><span>💀 Danger icon = −1 life if clicked</span></div>
             <div className="how-item"><div className="how-num">5</div><span>Miss 3× = game over instantly</span></div>
 
-            <div className="panel-title" style={{ marginTop: '4px' }}>Leaderboard</div>
-            <div id="lb-wrap">
-                {loading ? <div className="lb-loading">Loading...</div> : 
-                 leaderboard.length === 0 ? <div className="lb-loading">No scores yet. Be first!</div> :
-                 leaderboard.map((e, i) => {
-                     const isYou = currentUser && e.uid === currentUser.uid;
-                     const rankClass = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : '';
-                     const rankDisp = i < 3 ? medals[i] : (i + 1);
-                     return (
-                         <div key={e.uid || i} className="lb-entry">
-                             <div className={`lb-rank ${rankClass}`}>{rankDisp}</div>
-                             <div className="lb-avatar">
-                                 {e.photoURL ? <img src={e.photoURL} alt="" /> : <span>{(e.name || '?')[0].toUpperCase()}</span>}
-                             </div>
-                             <div className={`lb-name ${isYou ? 'lb-you' : ''}`}>
-                                 {e.name || 'Player'}{isYou ? ' ★' : ''}
-                             </div>
-                             <div className="lb-score">{e.bestScore || 0}</div>
-                         </div>
-                     );
-                 })
-                }
-            </div>
         </div>
     );
 }

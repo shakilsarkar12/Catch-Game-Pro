@@ -323,6 +323,10 @@ export default function Arena({
         if (timerRef.current) clearInterval(timerRef.current);
         if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
         if (currentTweenRef.current) currentTweenRef.current.kill();
+        
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(err => console.log(err));
+        }
 
         const st = stateRef.current;
         const duration = Math.round((Date.now() - sessionStartTime.current) / 1000);
@@ -363,6 +367,10 @@ export default function Arena({
         sessionHitTimestamps.current = [];
         
         setOverlayState(prev => ({ ...prev, show: false }));
+
+        if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => console.log(err));
+        }
 
         if (timerRef.current) clearInterval(timerRef.current);
         if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
@@ -418,25 +426,27 @@ export default function Arena({
 
     return (
         <div className="arena-col">
+            <div id="arena-hud">
+                <div className="hud-pill">
+                    <span className="hud-pill-label">Score</span>
+                    <span className="hud-pill-val l">{score}</span>
+                </div>
+                <div className="hud-pill">
+                    <span className="hud-pill-label">Time</span>
+                    <span className="hud-pill-val c">{timeLeft}</span>
+                </div>
+                <div className="hud-pill">
+                    <span className="hud-pill-label">Best</span>
+                    <span className="hud-pill-val">{Math.max(bestScore, score)}</span>
+                </div>
+            </div>
+
             <div className="timer-wrap">
                 <div className="timer-fill" style={{ width: `${pct}%`, background: timerBg }}></div>
             </div>
 
             <div id="arena" ref={arenaRef} onClick={handleArenaMiss}>
-                <div id="arena-hud">
-                    <div className="hud-pill">
-                        <span className="hud-pill-label">Score</span>
-                        <span className="hud-pill-val l">{score}</span>
-                    </div>
-                    <div className="hud-pill">
-                        <span className="hud-pill-label">Time</span>
-                        <span className="hud-pill-val c">{timeLeft}</span>
-                    </div>
-                    <div className="hud-pill">
-                        <span className="hud-pill-label">Best</span>
-                        <span className="hud-pill-val">{Math.max(bestScore, score)}</span>
-                    </div>
-                </div>
+
 
                 <div id="target" ref={targetRef} className={targetClass} onClick={handleHit}>
                     {targetIcon}

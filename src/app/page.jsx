@@ -62,7 +62,7 @@ export default function Home() {
                     gameRunning={gameState.gameRunning} 
                 />
 
-                <div className="main-grid">
+                <div className={`main-grid ${gameState.gameRunning ? 'game-active' : ''}`}>
                     <LeftPanel />
 
                     <Arena 

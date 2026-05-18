@@ -1,5 +1,6 @@
 'use client';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
 export default function TopBar({ onOpenDashboard }) {
     const { currentUser, userProfile, logout } = useAuth();
@@ -28,6 +29,7 @@ export default function TopBar({ onOpenDashboard }) {
                     <div className={`user-rank rank-${tier}`}>{tier.toUpperCase()}</div>
                 </div>
                 <button className="btn-sm" onClick={onOpenDashboard} style={{ marginLeft: '8px' }}>Dashboard</button>
+                <Link href="/leaderboard" className="btn-sm" style={{ marginLeft: '6px', textDecoration: 'none' }}>Leaderboard</Link>
                 <button className="btn-sm" onClick={logout} style={{ marginLeft: '6px' }}>Sign out</button>
             </div>
         </div>
