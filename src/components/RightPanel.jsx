@@ -43,7 +43,7 @@ export default function RightPanel({ lives, combo, score, hits, misses, multipli
             <div className="how-item"><div className="how-num">1</div><span>Click the moving icon to score</span></div>
             <div className="how-item"><div className="how-num">2</div><span>3-streak → ×2, 5 → ×3, 8 → ×4</span></div>
             <div className="how-item"><div className="how-num">3</div><span>⭐ Special = 3× your multiplier</span></div>
-            <div className="how-item"><div className="how-num">4</div><span>💀 Danger icon = −1 life if clicked</span></div>
+            <div className="how-item"><div className="how-num">4</div><span>💀 Danger changes each game (Avoid it!)</span></div>
             <div className="how-item"><div className="how-num">5</div><span>Miss 3× = game over instantly</span></div>
 
         </div>
